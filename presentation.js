@@ -106,7 +106,7 @@ var presentation = function(specs) {
   that.start = function(options) {
     var options = options || {};
     var step = options.step || 0;
-    var premiere = specs.start || defaultStart;
+    var premiere = specs.onStart || defaultStart;
 
     this.steps = parseSteps(location);
     this.currentStep = step;
@@ -146,7 +146,7 @@ var presentation = function(specs) {
   };
 
   that.finish = function() {
-    var finale = specs.finish || defaultFinish;
+    var finale = specs.onFinish || defaultFinish;
     finale();
     this.started = false;
   };
