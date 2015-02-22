@@ -1,0 +1,15 @@
+This is some text.
+
+
+It can have multiple lines.
+
+>>
+  console.log('This is evaluated');
+  console.log('In multiple lines');
+<< 
+
+It continues.
+
+>>
+  console.log('It reevaluates');
+<<
