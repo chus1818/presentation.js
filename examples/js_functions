@@ -1,15 +1,385 @@
-This is some text.
+FUNCTIONS ARE OBJECTS. 
 
+Remember that javascript objects are a kind of hashes, key-value pairs where the values can be other objects (in particular functions).
 
-It can have multiple lines.
+Because they are objects you can do with a function anything you would do with an object, for instance you can assign them to variables.
 
->>
-  console.log('This is evaluated');
-  console.log('In multiple lines');
-<< 
-
-It continues.
+Therefore the following code is going to generate two objects, one assigned to the first variable and another assigned to the second one.
 
 >>
-  console.log('It reevaluates');
+  var elm = { id: 1 };
+  var add = function(a) { return(1 + a) };
+  add(2);
 <<
+
+The second assignment is syntactic sugar for the creation of an object, just as it happens for the assignment of elm, with three hidden attributes:
+
+- the function context, or binding in Ruby.
+
+- the actual function code.
+
+- prototype, which value is an object with a constructor property which value is the function itself. 
+
+>>
+  var myFunc = function() {};
+  myFunc.prototype.constructor == myFunc;
+<<
+
+This is how you can call new onto functions. What new does is to apply the constructor of the object using as this a newly created empty object, and return this:
+
+Example without usign the constructor:
+
+>>
+  console.log('At the beginning the testKey of the main object is: ' + GLOBAL.testKey);
+  var myFunc = function() { this.testKey = 'Dumbi Dumba' };
+  myFunc();
+  console.log('After calling myFunc the testKey of the main object is: ' + GLOBAL.testKey);
+<<
+
+Example usign the constructor:
+
+>>
+  var myFunc = function() { this.testKey = 'Dumbi Dumba' };
+  var myNewObject = new myFunc();
+  myNewObject.testKey;
+<<
+
+Example using apply:
+
+>>
+  var myFunc = function() { this.testKey = 'Dumbi Dumba' };
+  var myNewObject = {};
+  myFunc.apply(myNewObject, []);
+  myNewObject.testKey;
+<<
+
+Furthermore, the function objects are linked to Function.prototype and not Object.prototype; even though Function.prototype is linked to Object.prototype:
+
+>>
+  Object.prototype.hiObj    = function(name){ console.log('hi Object! I am: ' + name) };
+  Function.prototype.hiFunc = function(name){ console.log('hi Function! I am: ' + name) };
+  
+  var myFunc   = function(){};
+  var myObject = {};
+
+  myFunc.hiFunc('myFunc');
+  myFunc.hiObj('myFunc');
+
+  myObject.hiObj('myObj');
+  myObject.hiFunc('myObj'); 
+<<
+
+Besides that the only special thing about function objects is that they can be invoked.
+
+
+FUNCTION INVOCATION
+
+When you invoke a function the program begins its execution. You can interrupt it and return control to the upper execution context using the return statement. 
+
+Besides returning control, the function will return the value defined as return value.
+
+All functions return a value, even if no return statement is declared. The default return value is undefined.
+
+>>
+  var myFunc = function(){
+    return(42);
+    console.log('After the return statement, so I am not going to be taken into consideration');
+  };
+
+  myFunc();
+<<
+
+There are a variety of ways to invoke a function, but in all of them the function receives two additional parameters: 'this' and 'arguments'. 
+'This' represents the object context and 'arguments' are the received arguments splatted into an array, including any excess of received arguments that therefore are not assigned to any parameter. 
+
+The invocation patterns differ only on how this is defined.
+
+>>
+  var myFunc = function(arg1, arg2) {
+    console.log('arg1: ' + arg1);
+    console.log('arg2: ' + arg2);
+    console.log('this (myObj): ' + this);
+    console.log('arguments' + arguments);
+  };
+  var myObj = { myFunc: myFunc };
+
+  myObj.myFunc(1, 2);
+<<
+
+We have just seen an example of the METHOD INVOCATION PATTERN. When a function is stored as a property of an object we call it a method. 
+
+In this case 'this' is the object, an the binding happens at invocation time. We call those methods PUBLIC METHODS.
+
+The FUNCTION INVOCATION PATTERN is what we do when we call a function without it being assigned as a property of an object. 
+
+In that case 'this' is the global object.
+
+>>
+  var myFunc = function(arg1, arg2) {
+    console.log('arg1: ' + arg1);
+    console.log('arg2: ' + arg2);
+    console.log('this (the global object): ' + this);
+    console.log('arguments' + arguments);
+  };
+
+  myFunc(1, 2);
+<<
+
+Note that 'this' is not bound to the previous definition of this, but to the global object every time you use this invokation pattern, regardless of the context:
+
+>>
+  this.test = 1;
+  var myObj = { test: 2 };
+
+  myObj.myFunc = function() {
+    console.log('Inside myFunc this is myObj: test value is ' + this.test);
+
+    var helper = function() {
+      console.log('Inside the helper method this is the global object: test value is ' + this.test);
+    };
+
+    helper();
+  }
+
+  myObj.myFunc();
+<<
+
+To avoid this situation which is a mistake in the language implementation you can assign the object's this to a variable, usually called that, which will be defined in the clojure that the inner functions will use:
+
+>>
+  this.test = 1;
+  var myObj = { test: 2 };
+
+  myObj.myFunc = function() {
+    var that = this;
+    console.log('Inside myFunc that (and this) is myObj: test value is ' + that.test);
+
+    var helper = function() {
+      console.log('Inside the helper method this is the global object: test value is ' + this.test);
+      console.log('Inside the helper method that is myObj: test value is ' + that.test);
+    };
+
+    helper();
+  }
+
+  myObj.myFunc();
+<<
+
+The CONSTRUCTOR INVOCATION PATTERN is to use a function as a constructor:
+
+>>
+  var MyConstructorFunc = function() { this.name = 'Some name' };
+  var myObj = new MyConstructorFunc();
+  myObj.name;
+<<
+
+Functions that are intended to be used as a constructor are by convention named in capitalized letters because if they are invoked without the new they can modify the global object, as we have already shown. 
+
+As we have seen this inside the function will be a newly created object.
+
+With the APPLY INVOCATION PATTERN we can customize the value of 'this' and 'arguments'. The method apply is defined at Function.prototype:
+
+>>
+  var myArguments = ['fake name', 'real name'];
+  var myThis = {};
+  var myFunc = function(a, b) { this.name = b };
+  myFunc.apply(myThis, myArguments);
+  myThis.name;
+<<
+
+
+EXCEPTIONS
+
+Exceptions are quite straigh forward:
+
+>>
+  var myFunc = function() {
+    try {
+      faefagagrgafeadeafa;
+    } catch(e) {
+      console.log(e.message);
+    };
+  };
+
+  myFunc();
+<<
+
+
+SCOPES and CLOJURES
+
+Javascript has function scopes/clojures, not block scopes. 
+
+That means that variables defined for instance inside if statements are available from outside them.
+
+In consecuence it is a good idea to define all the variables you are going to use inside a function at the top of it.
+
+>>
+  var myFunc = function() {
+    /* Even though we are only using i inside the if statement we are supposed
+       to initialize it here, because it is going to be available in the function
+       context in any case. */
+    var i = 1;
+    var j = 2;
+
+    if(true) {
+      i;
+    };
+
+    changeJ = function() {
+    /* j is defined here and if we modify j we will modify it in the whole scope. */
+      j = 2;
+    };
+
+    changeJ();
+
+    /* j here is 2. */
+    console.log('j value is: ' + j);
+  };
+
+  myFunc();
+<<
+
+
+MODULES
+
+You can create objects that present a public interface by hiding its implementation:
+
+>>
+  var myModule = function(input){
+    var myPrivateValue = 'whoa';
+    var myPrivateFunction = function() {
+      return(myPrivateValue + input);
+    };
+
+    return function(){
+      return myPrivateFunction();
+    };
+  }
+  var myFunctionWithHiddenImplementation = myModule('abc');
+  myFunctionWithHiddenImplementation();
+<<
+
+Private function and value are available to the function we are returning because they are in its clojure, but not from outside our module. 
+
+Besides that, both private variables are declared only when the function with hidden implementation is assigned, but not each time it is called.
+
+You can also use modules to create secure objects:
+
+>>
+  var myModule = function(){
+    var mySharedSensitiveConstant = 1;
+
+    return {
+      secureMethod: function() {
+        return(mySharedSensitiveConstant * 2);
+      },
+      anotherSecureMethod: function() {
+        return(mySharedSensitiveConstant * 3);
+      }
+    };
+  }();
+  var mySecureObject = myModule;
+  mySecureObject.secureMethod();
+<<
+
+Note that both secure methods share a constant but we don't need to define it at the object level, adding it as a property of this which could be changed from outside the object definition thus making it not temper proof, and neither as a global constant which could be also changed from outside.
+
+Clojures can be exploited for other uses, for instance memoization:
+
+>>
+  var myMemoizableFunc = function() {
+    var memo = {};
+    var aCostlyAction = function(input) { return input };
+
+
+    return function(input){
+      var result = memo[input];
+      if(result){
+        console.log('Returning a memoized value!');
+        return result;
+      } else {
+        result = aCostlyAction(input);
+        memo[input] = result;
+        return result;
+      };
+    };
+  }();
+
+  console.log(myMemoizableFunc('a'));
+  console.log(myMemoizableFunc('b'));
+  console.log(myMemoizableFunc('a'));
+<<
+
+Each time myMemoizableFunc is called it is going to check if it has a memoized value for the given input before performing the actual action.
+It can do that because the function returned by calling the myMemoizableFunc definition has access to the scope defined inside it.
+
+SOME NOTES
+
+- Even though javascript is a functional language it does not perform Tail Call Optimization. 
+
+Therefore each time you call a function recursively a reference to the caller is stored so the call tree can be reconstructed when the base value is obtained. 
+
+So recursion inefficiency grows exponentially and you should avoid it unless you can be sure that the chain of recursive calls is not going to be long. 
+
+- Functions passed as arguments can be used as callbacks that will be invoked whenever it is needed by the function receiving them, for instance wheneve an asynchronous request is responded. Here is an example:
+
+>>
+  var myAjaxRequest = function(input, callback){
+    var fakeResponse = {data: 'hello'};
+    callback(fakeResponse);
+  };
+
+  myAjaxRequest({url: 'http://my.workshare.com'}, function(response){
+    console.log(response.data);
+  });
+<<
+
+- You can return this in a method in order to concatenate methods on this:
+
+>>
+  myObject = {
+    result: '',
+    a: function(input){ 
+      this.result += input;
+      return this;
+    },
+    b: function(input){
+      this.result += input;
+      return this;
+    }
+  };
+
+  myObject.a('some ').b('text').result;
+<<
+
+- Curry: Given a function and some of its arguments return a new function that will apply the subset of arguments, reducing the amount of arguments it receives. We will use the clojure to achieve that:
+
+>>
+  var sum = function(a, b) {
+    return a + b;
+  };
+
+  var sumN = function(a){
+    return function(b) {
+      return a + b;
+    };
+  };
+
+  var sum1 = sumN(1);
+  var sum2 = sumN(2);
+  console.log('sum1: ' + sum1(2));
+  console.log('sum2: ' + sum2(2));
+<<
+
+In ruby it would be something like:
+
+two_args_lambda -> (a, b) { a + b }
+two_args_lambda.(1,2)
+
+Being equivalent to the curried version:
+
+one_arg_lambda  -> (a) { -> (b) { a + b } } 
+one_arg_lambda.(1).(2)
+
+It is a useful method in functional programming because some times we want to be able to reduce the number of arguments a function receives because we are interested in properties of functions receiving a given number of args (typically 1).
+
